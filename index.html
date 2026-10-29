@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>三国·战和守｜三人联机</title>
+<style>
+  :root {
+    --gold: #f5c542;
+    --bg1: #0f172a; --bg2: #1e293b;
+    --card: #16213b;
+    --text: #e2e8f0; --muted: #94a3b8;
+    --wei: #3b82f6; --shu: #ef4444; --wu: #22c55e;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(160deg, var(--bg1), var(--bg2));
+    color: var(--text); min-height: 100%;
+    display: flex; align-items: center; justify-content: center; padding: 14px;
+  }
+  .app { width: 100%; max-width: 460px; }
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn .35s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .card { background: var(--card); border: 1px solid rgba(255,255,255,.08); border-radius: 20px; padding: 20px 18px; margin-bottom: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+  .title { font-size: 28px; font-weight: 800; text-align: center; letter-spacing: 2px; }
+  .title .sub { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+  .gold { color: var(--gold); }
+  h2 { font-size: 18px; font-weight: 700; margin-bottom: 12px; text-align: center; }
+  .muted { color: var(--muted); } .center { text-align: center; }
+
+  .btn { display: block; width: 100%; padding: 15px; border: none; border-radius: 14px; font-size: 17px; font-weight: 700; background: var(--gold); color: #1a1200; cursor: pointer; letter-spacing: 1px; transition: transform .08s ease; margin-top: 6px; }
+  .btn:active { transform: scale(.97); }
+  .btn.secondary { background: rgba(255,255,255,.12); color: #fff; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  input.txt { width: 100%; padding: 13px 14px; margin: 6px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,.15); background: rgba(0,0,0,.25); color: #fff; font-size: 16px; }
+  input.txt::placeholder { color: #64748b; }
+
+  .row2 { display: flex; gap: 10px; }
+  .row2 .btn { flex: 1; }
+
+  .bigcode { text-align: center; font-size: 44px; font-weight: 900; letter-spacing: 6px; color: var(--gold); margin: 6px 0; }
+  .seat { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; margin-bottom: 8px; background: rgba(255,255,255,.04); }
+  .seat .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .seat .nm { flex: 1; font-weight: 700; }
+  .seat .st { font-size: 12px; color: var(--muted); }
+  .seat.online .dot { background: #4ade80; } .seat.offline .dot { background: #64748b; }
+
+  .treasure { text-align: center; font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .treasure .t { font-size: 32px; color: var(--gold); font-weight: 900; }
+  .actions { display: flex; gap: 10px; }
+  .act-btn { flex: 1; padding: 22px 4px; border-radius: 16px; border: 2px solid transparent; background: rgba(255,255,255,.06); color: #fff; cursor: pointer; font-size: 15px; font-weight: 700; text-align: center; transition: transform .08s, border .15s, background .15s; }
+  .act-btn .ico { font-size: 34px; display: block; margin-bottom: 6px; }
+  .act-btn:active { transform: scale(.95); }
+  .act-btn.selected { border-color: var(--gold); background: rgba(245,197,66,.12); }
+
+  .waiting { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+  .wseat { flex: 1; text-align: center; padding: 12px 6px; border-radius: 12px; background: rgba(255,255,255,.04); font-size: 12px; }
+  .wseat .nm { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .wseat.done { background: rgba(74,222,128,.12); }
+  .wseat .mark { font-size: 16px; }
+
+  .situation { text-align: center; font-size: 15px; font-weight: 700; padding: 12px; border-radius: 12px; margin-bottom: 12px; background: rgba(245,197,66,.1); border: 1px solid rgba(245,197,66,.3); }
+  .reveal-row { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; margin-bottom: 8px; background: rgba(255,255,255,.04); }
+  .reveal-row .big { font-size: 30px; }
+  .reveal-row .info { flex: 1; }
+  .reveal-row .info .nm { font-weight: 700; }
+  .reveal-row .info .dt { font-size: 12.5px; color: var(--muted); }
+  .chg.pos { color: #4ade80; } .chg.neg { color: #f87171; }
+
+  .score-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; background: rgba(255,255,255,.04); }
+  .score-row .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .score-row .nm { flex: 1; font-weight: 700; }
+  .score-row .history { font-size: 11px; color: var(--muted); }
+  .score-row .sc { font-weight: 800; font-size: 18px; }
+
+  .winner { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 14px; }
+  .connbar { position: fixed; top: 0; left: 0; right: 0; text-align: center; font-size: 12px; padding: 4px; z-index: 10; }
+  .connbar.ok { background: rgba(74,222,128,.15); color: #4ade80; }
+  .connbar.bad { background: rgba(248,113,113,.18); color: #f87171; }
+  .rule-mini { font-size: 12.5px; line-height: 1.6; color: #cbd5e1; }
+  table.payoff { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0; }
+  table.payoff th, table.payoff td { border: 1px solid rgba(255,255,255,.14); padding: 6px 4px; text-align: center; }
+  table.payoff th { background: rgba(255,255,255,.06); }
+</style>
+</head>
+<body>
+<div class="connbar bad" id="connbar">连接中…</div>
+<div class="app" style="margin-top:20px">
+
+  <!-- 首页 -->
+  <div id="s-home" class="screen">
+    <div class="card">
+      <div class="title">⚔️ 三国 · 战和守<span class="sub">三人异地联机 · 积分制</span></div>
+      <div style="margin-top:14px">
+        <input class="txt" id="name" maxlength="6" placeholder="你的名字（如：魏/蜀/吴）">
+      </div>
+      <div class="row2" style="margin-top:10px">
+        <button class="btn" onclick="createRoom()">创建房间</button>
+        <button class="btn secondary" id="rejoin-btn" style="display:none" onclick="rejoin()">回到上一局</button>
+      </div>
+      <div class="row2" style="margin-top:10px">
+        <input class="txt" id="code" maxlength="6" inputmode="numeric" placeholder="输入6位房间码" style="flex:1">
+        <button class="btn secondary" onclick="joinRoom()" style="flex:none;width:auto;padding:0 18px">加入</button>
+      </div>
+      <div class="muted center" style="font-size:12px;margin-top:8px">一个人创建房间，另外两人输码加入，3 人齐后房主开局</div>
+    </div>
+
+    <div class="card">
+      <h2>📖 规则</h2>
+      <div class="rule-mini">每回合出现一个宝藏（8–15分），三人<b>同时</b>暗选行动再揭晓：</div>
+      <div class="rule-mini">⚔️ <b>战</b>：独战则独吞宝藏；两人以上战则各 −5</div>
+      <div class="rule-mini">🤝 <b>和</b>：无人战则均分宝藏；被战则 −3；混战躲过 ±0</div>
+      <div class="rule-mini">🏰 <b>守</b>：任何局势固定 +2</div>
+      <table class="payoff">
+        <tr><th>行动</th><th>独战</th><th>混战</th><th>和平</th></tr>
+        <tr><td><b>⚔️战</b></td><td>+宝藏</td><td>−5</td><td>—</td></tr>
+        <tr><td><b>🤝和</b></td><td>−3</td><td>±0</td><td>+宝藏÷和数</td></tr>
+        <tr><td><b>🏰守</b></td><td>+2</td><td>+2</td><td>+2</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 房间大厅 -->
+  <div id="s-lobby" class="screen">
+    <div class="card center">
+      <h2>房间码</h2>
+      <div class="bigcode" id="room-code">—</div>
+      <button class="btn secondary" onclick="copyCode()" style="margin:6px 0 14px">复制房间码邀请好友</button>
+      <div id="seat-list"></div>
+      <div class="muted" style="font-size:12px;margin:8px 0" id="lobby-hint">等待玩家加入…</div>
+      <button class="btn" id="start-btn" disabled onclick="startGame()">开始游戏（需 3 人）</button>
+      <button class="btn secondary" onclick="leaveRoom()">退出房间</button>
+    </div>
+    <div class="card">
+      <h2>规则速览</h2>
+      <div class="rule-mini">⚔️战=独吞/互伤 · 🤝和=均分/被抢 · 🏰守=固定+2</div>
+    </div>
+  </div>
+
+  <!-- 选择行动 -->
+  <div id="s-choose" class="screen">
+    <div class="card">
+      <div class="treasure">💰 本回合宝藏 <span class="t" id="t-val">10</span> 分 · 第 <span id="round-label">1</span>/<span id="total-label">9</span> 回合</div>
+      <div id="choose-area">
+        <div class="center muted" style="margin-bottom:12px;font-size:14px">请选择你的行动（对手看不到）</div>
+        <div class="actions">
+          <button class="act-btn" onclick="pick(0)"><span class="ico">⚔️</span>战</button>
+          <button class="act-btn" onclick="pick(1)"><span class="ico">🤝</span>和</button>
+          <button class="act-btn" onclick="pick(2)"><span class="ico">🏰</span>守</button>
+        </div>
+        <button class="btn" id="lock-btn" disabled onclick="lock()">锁定选择</button>
+      </div>
+      <div id="wait-area" style="display:none">
+        <div class="center muted" style="margin-bottom:12px;font-size:14px">已锁定，等待其他玩家…</div>
+        <div class="waiting" id="wait-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 揭晓 -->
+  <div id="s-reveal" class="screen">
+    <div class="card">
+      <div class="situation" id="situation"></div>
+      <div id="reveal-list"></div>
+    </div>
+    <div class="card">
+      <h2>🏆 积分榜</h2>
+      <div id="scoreboard"></div>
+    </div>
+    <button class="btn" id="advance-btn" onclick="advance()">下一回合 →</button>
+  </div>
+
+  <!-- 结果 -->
+  <div id="s-result" class="screen">
+    <div class="card center">
+      <div class="winner" id="winner-text"></div>
+      <div id="final-scoreboard"></div>
+    </div>
+    <button class="btn" id="restart-btn" onclick="restart()" style="display:none">再来一局 🔄</button>
+    <div class="muted center" id="result-hint" style="margin-top:10px">等待房主开新局…</div>
+  </div>
+
+</div>
+
+<script>
+  var SEAT_COLORS = ['var(--wei)', 'var(--shu)', 'var(--wu)'];
+  var ACT_NAMES = ['战', '和', '守'];
+  var ACT_ICONS = ['⚔️', '🤝', '🏰'];
+
+  var ws = null;
+  var me = { name: '', seat: -1, code: '', token: '', host: false };
+  var totalRounds = 9;
+  var myChoice = null;
+  var tempPick = -1;
+  var retryTimer = null;
+
+  var LS_KEY = 'tkg_session';
+
+  function el(id) { return document.getElementById(id); }
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    el(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  function setConn(ok, text) {
+    var bar = el('connbar');
+    bar.className = 'connbar ' + (ok ? 'ok' : 'bad');
+    bar.textContent = text || (ok ? '已连接' : '连接断开');
+  }
+
+  // ---------- 连接 ----------
+  function connect() {
+    var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    ws = new WebSocket(proto + location.host);
+    ws.onopen = function () {
+      setConn(true);
+      var saved = loadSaved();
+      if (saved) {
+        // 自动尝试回到上一局
+        ws.send(JSON.stringify({ type: 'reconnect', code: saved.code, seat: saved.seat, token: saved.token }));
+      }
+    };
+    ws.onmessage = function (ev) {
+      var m;
+      try { m = JSON.parse(ev.data); } catch { return; }
+      handle(m);
+    };
+    ws.onclose = function () {
+      setConn(false, '连接断开，重连中…');
+      scheduleRetry();
+    };
+    ws.onerror = function () { /* onclose 会处理 */ };
+  }
+
+  function scheduleRetry() {
+    if (retryTimer) return;
+    retryTimer = setTimeout(function () {
+      retryTimer = null;
+      connect();
+    }, 2000);
+  }
+
+  // ---------- 本地存储 ----------
+  function loadSaved() {
+    try { var s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+  }
+  function saveSession(code, seat, token) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ code: code, seat: seat, token: token })); } catch {}
+  }
+  function clearSaved() { try { localStorage.removeItem(LS_KEY); } catch {} }
+
+  // ---------- 操作 ----------
+  function ensureName() {
+    var n = el('name').value.trim();
+    if (!n) { el('name').value = '玩家'; n = '玩家'; }
+    return n;
+  }
+  function createRoom() {
+    me.name = ensureName();
+    ws.send(JSON.stringify({ type: 'create', name: me.name, totalRounds: totalRounds }));
+  }
+  function joinRoom() {
+    var code = el('code').value.trim();
+    if (code.length !== 6) { alert('请输入 6 位房间码'); return; }
+    me.name = ensureName();
+    ws.send(JSON.stringify({ type: 'join', code: code, name: me.name }));
+  }
+  function rejoin() {
+    var saved = loadSaved();
+    if (saved) ws.send(JSON.stringify({ type: 'reconnect', code: saved.code, seat: saved.seat, token: saved.token }));
+  }
+  function startGame() { ws.send(JSON.stringify({ type: 'start' })); }
+  function restart() { ws.send(JSON.stringify({ type: 'restart' })); }
+  function leaveRoom() { clearSaved(); location.reload(); }
+
+  function pick(i) {
+    tempPick = i;
+    var btns = document.querySelectorAll('#s-choose .act-btn');
+    btns.forEach(function (b, idx) { b.classList.toggle('selected', idx === i); });
+    el('lock-btn').disabled = false;
+    el('lock-btn').textContent = '锁定「' + ACT_NAMES[i] + '」';
+  }
+  function lock() {
+    if (tempPick < 0) return;
+    myChoice = tempPick;
+    ws.send(JSON.stringify({ type: 'choose', action: tempPick }));
+    renderWaitArea();
+  }
+  function advance() { ws.send(JSON.stringify({ type: 'advance' })); }
+  function copyCode() {
+    var code = me.code;
+    if (navigator.clipboard) navigator.clipboard.writeText(code).then(function(){ alert('已复制 ' + code); }).catch(function(){ fallbackCopy(code); });
+    else fallbackCopy(code);
+  }
+  function fallbackCopy(t) {
+    var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); alert('已复制 ' + t); } catch {}
+    document.body.removeChild(ta);
+  }
+
+  // ---------- 消息处理 ----------
+  function handle(m) {
+    switch (m.type) {
+      case 'joined':
+        me.code = m.code; me.seat = m.seat; me.token = m.token; me.host = (m.seat === m.hostSeat);
+        totalRounds = m.totalRounds;
+        saveSession(m.code, m.seat, m.token);
+        el('room-code').textContent = m.code;
+        renderLobby(m);
+        show('s-lobby');
+        break;
+      case 'room':
+        if (m.state === 'lobby') { renderLobby(m); if (!el('s-lobby').classList.contains('active')) show('s-lobby'); }
+        break;
+      case 'round':
+        myChoice = null; tempPick = -1;
+        totalRounds = m.totalRounds;
+        el('t-val').textContent = m.treasure;
+        el('round-label').textContent = m.round;
+        el('total-label').textContent = m.totalRounds;
+        resetChooseArea();
+        renderWaitArea();
+        show('s-choose');
+        break;
+      case 'submitted':
+        renderWaitArea();
+        break;
+      case 'reveal':
+        renderReveal(m);
+        show('s-reveal');
+        break;
+      case 'result':
+        renderResult(m);
+        show('s-result');
+        break;
+      case 'snapshot':
+        me.code = m.code; me.seat = m.seat; me.token = m.token; me.host = (m.seat === m.hostSeat);
+        totalRounds = m.totalRounds;
+        saveSession(m.code, m.seat, m.token);
+        el('room-code').textContent = m.code;
+        applySnapshot(m);
+        break;
+      case 'error':
+        alert(m.message);
+        break;
+    }
+  }
+
+  function applySnapshot(m) {
+    if (m.state === 'lobby') { renderLobby(m); show('s-lobby'); }
+    else if (m.state === 'choosing') {
+      el('t-val').textContent = m.treasure;
+      el('round-label').textContent = m.round;
+      el('total-label').textContent = m.totalRounds;
+      myChoice = m.myChoice;
+      tempPick = myChoice !== null ? myChoice : -1;
+      resetChooseArea();
+      renderWaitArea();
+      show('s-choose');
+    } else if (m.state === 'revealed' && m.lastReveal) { renderReveal(m.lastReveal); show('s-reveal'); }
+    else if (m.state === 'ended' && m.lastResult) { renderResult(m.lastResult); show('s-result'); }
+  }
+
+  // ---------- 渲染 ----------
+  function seatColor(seat) { return SEAT_COLORS[seat % 3]; }
+
+  function renderLobby(m) {
+    var seats = m.seats || [];
+    var html = '';
+    seats.forEach(function (s) {
+      var cls = s.connected ? 'online' : (s.name ? 'offline' : 'offline');
+      var name = s.name || '待加入';
+      var st = s.connected ? '在线' : (s.name ? '离线' : '等待加入');
+      html += '<div class="seat ' + cls + '"><span class="dot"></span><span class="nm" style="color:' + seatColor(s.seat) + '">' + name + '</span><span class="st">' + st + '</span></div>';
+    });
+    el('seat-list').innerHTML = html;
+    var online = seats.filter(function (s) { return s.connected; }).length;
+    var startBtn = el('start-btn');
+    if (me.host) {
+      startBtn.style.display = 'block';
+      startBtn.disabled = online < 3;
+      el('lobby-hint').textContent = online >= 3 ? '3 人已就位，可以开局！' : '等待 ' + (3 - online) + ' 位玩家加入…';
+    } else {
+      startBtn.style.display = 'none';
+      el('lobby-hint').textContent = '等待房主开始游戏…';
+    }
+  }
+
+  function resetChooseArea() {
+    el('choose-area').style.display = 'block';
+    el('wait-area').style.display = 'none';
+    var btns = document.querySelectorAll('#s-choose .act-btn');
+    btns.forEach(function (b) { b.classList.remove('selected'); });
+    el('lock-btn').disabled = true;
+    el('lock-btn').textContent = '锁定选择';
+  }
+
+  function renderWaitArea() {
+    if (myChoice === null) {
+      el('choose-area').style.display = 'block';
+      el('wait-area').style.display = 'none';
+      return;
+    }
+    el('choose-area').style.display = 'none';
+    el('wait-area').style.display = 'block';
+    // 从缓存座位信息渲染等待状态（这里用本地记录 + 服务器 submitted 广播更新）
+    var html = '';
+    for (var i = 0; i < 3; i++) {
+      var name = seatNames[i] || ('玩家' + (i + 1));
+      var done = submittedSeats[i];
+      html += '<div class="wseat ' + (done ? 'done' : '') + '"><div class="nm" style="color:' + seatColor(i) + '">' + name + '</div><div class="mark">' + (i === me.seat ? (done ? '✅已锁定' : '我') : (done ? '✅已选' : '⏳等待')) + '</div></div>';
+    }
+    el('wait-list').innerHTML = html;
+  }
+
+  var seatNames = ['', '', ''];
+  var submittedSeats = [false, false, false];
+
+  function renderReveal(m) {
+    el('situation').textContent = m.situation;
+    var html = '';
+    m.players.forEach(function (p) {
+      html += '<div class="reveal-row"><span class="big">' + ACT_ICONS[p.action] + '</span>'
+        + '<div class="info"><div class="nm" style="color:' + seatColor(p.seat) + '">' + p.name + ' · ' + ACT_NAMES[p.action] + '</div>'
+        + '<div class="dt">' + p.desc + '</div></div>'
+        + '<span class="chg ' + (p.delta >= 0 ? 'pos' : 'neg') + '" style="font-weight:800">' + (p.delta >= 0 ? '+' : '') + p.delta + '</span></div>';
+    });
+    el('reveal-list').innerHTML = html;
+    renderScores('scoreboard', m.scores, m.history, m.players.map(function (p) { return p.name; }));
+    el('advance-btn').textContent = m.lastRound ? '查看最终结果 🏆' : '下一回合 →';
+  }
+
+  function renderResult(m) {
+    el('winner-text').textContent = m.winner;
+    renderScores('final-scoreboard', m.scores, m.history, m.names);
+    if (me.host) { el('restart-btn').style.display = 'block'; el('result-hint').style.display = 'none'; }
+    else { el('restart-btn').style.display = 'none'; el('result-hint').style.display = 'block'; }
+  }
+
+  function renderScores(id, scores, history, names) {
+    var idx = scores.map(function (_, i) { return i; }).sort(function (a, b) { return scores[b] - scores[a]; });
+    var html = '';
+    idx.forEach(function (i) {
+      html += '<div class="score-row"><span class="dot" style="background:' + seatColor(i) + '"></span>'
+        + '<span class="nm">' + names[i] + '</span>'
+        + '<span class="history">' + history[i][0] + '战 ' + history[i][1] + '和 ' + history[i][2] + '守</span>'
+        + '<span class="sc">' + scores[i] + '</span></div>';
+    });
+    el(id).innerHTML = html;
+  }
+
+  // 用服务器广播的 room/submitted 同步座位与提交状态
+  var lastSeats = [];
+  function syncSeats(seats) {
+    lastSeats = seats || lastSeats;
+    lastSeats.forEach(function (s) {
+      seatNames[s.seat] = s.name || seatNames[s.seat];
+      submittedSeats[s.seat] = s.chosen;
+    });
+  }
+
+  // 在 handle 里补同步
+  var _handle = handle;
+  handle = function (m) {
+    if (m.seats) syncSeats(m.seats);
+    _handle(m);
+  };
+
+  // ---------- 启动 ----------
+  (function init() {
+    var saved = loadSaved();
+    if (saved) el('rejoin-btn').style.display = 'block';
+    if (!el('name').value && saved) el('name').value = '';
+    connect();
+  })();
+</script>
+</body>
+</html>

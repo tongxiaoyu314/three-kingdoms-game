@@ -1,0 +1,12 @@
+{
+  "name": "three-kingdoms-game",
+  "version": "1.0.0",
+  "description": "三国·战和守 —— 三人异地联机博弈小游戏",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
